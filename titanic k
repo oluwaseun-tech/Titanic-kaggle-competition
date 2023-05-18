@@ -1,0 +1,287 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set()
+
+from sklearn.linear_model import LinearRegression
+
+## Loading your dataset
+This dataset is about the passengers who survived the titanic shipwreck in 1912. Two different dataset was provided and was asked to build a model that predict the survival rate of passengers in the shipwreck. First thing is to load in the data.
+
+train_data = pd.read_csv('train.csv')
+train_data.head()
+
+train_data.tail()
+
+This train dataset shows that there are 12 variables with the name, 'PassengerId', 'Survived', 'PClass', 'Name', 'Sex', 'Age', SibSp, 'parch', 'Ticket,' 'Fare' 'Cabin' and 'Embarked'.
+Looking at this dataset,there are 9 categorical variable such as Survived, Pclass, Name, Sex, Sibsp, Parch, Ticket, Cabin and Embarked.While there are 3 numerical variables such as passengerId, Age and Fare.
+## Right now, I will be exploring the descriptive statistics of the variable.
+
+train_data.describe(include='all')
+
+The above depict the descriptive statistcs of all the variables including the categorical and numerical variables. It also shows that there missing values in the age, cabin, Fare and embarked variables.
+
+Therefore, we need to check the missing values 
+
+train_data.isnull().sum()
+
+regrp = train_data.groupby(['SibSp', 'Parch', 'Sex'])['Age'].mean().reset_index()[['SibSp', 'Parch', 'Sex', 'Age']]
+
+regrp
+
+def fill_Age(x):
+    return regrp[(regrp.SibSp == x.SibSp) & (regrp.Parch == x.Parch) & (regrp.Sex == x.Sex)]['Age'].values[0]
+
+#Now filling the missing values.
+train_data['Age'] = train_data.apply(lambda x: fill_Age(x) if np.isnan(x['Age']) else x['Age'], axis=1)
+
+#checking again for null values
+train_data['Age'].isnull().sum()
+
+median_age = train_data['Age'].median()
+train_data['Age'].fillna(median_age, inplace=True)
+
+train_data.isnull().sum()
+
+def count_plot(x, df, title, xlabel, ylabel, width, height, order = None, rotation=False, palette='dark', hue=None):
+    ncount = len(df)
+    plt.figure(figsize=(width,height))
+    ax = sns.countplot(x = x, palette=palette, order = order, hue=hue)
+    plt.title(title, fontsize=20)
+    if rotation:
+        plt.xticks(rotation = 'vertical')
+    plt.xlabel(xlabel, fontsize=15)
+    plt.ylabel(ylabel, fontsize=15)
+
+    ax.yaxis.set_label_position('left')
+    for p in ax.patches:
+        x=p.get_bbox().get_points()[:,0]
+        y=p.get_bbox().get_points()[1,1]
+        ax.annotate('{:.1f}%'.format(100.*y/ncount), (x.mean(), y), 
+                ha='center', va='bottom') # set the alignment of the text
+
+    plt.show()
+
+train_data['Survived']. value_counts()
+
+x = train_data['Survived']
+count_plot(x, train_data, "Number of survivors", "those who survive and not?", "count", 6,6)
+
+Following the data dictionary. Those who survival were categorised into 0 and 1. While 0=No, 1=Yes. 
+## The graph above depicts that about 67.2% survived the titanic shipwreck while 32.8% did not survive.
+
+train_data['Sex']. value_counts()
+
+x = train_data['Sex']
+count_plot(x, train_data, "Description of Gender", "Percentage of gender", "count", 6,6)
+
+## This reveals that there was about 48.1% female and 51.9% male in the titanic ship. That is, there was larger percent of male on the ship.
+
+x = train_data['Pclass']
+count_plot(x, train_data, "Description of ticket class", "Percentage of ticket class", "count", 6,6, palette='spring')
+
+# This shows that there was larger percentage of people on 1st class ticket with 86.3%, and 2nd class ticket with 8.2% while 3rd class ticket with 5.5% respectively.
+
+train_data['Parch'].value_counts()
+
+x = train_data['Sex']
+hue = train_data['Survived']
+count_plot(x, train_data, "Survived Gender Counts", "Gender", 'Count', 6,6, palette='summer', hue=hue)
+
+x = train_data['Pclass']
+hue = train_data['Survived']
+count_plot(x, train_data, "Survived ticket class Counts", "Ticket class", 'Count', 6,6, palette='winter', hue=hue)
+
+x = train_data['Pclass']
+hue = train_data['Sex']
+count_plot(x, train_data, "Ticket class Gender Counts", "Ticket class", 'Count', 6,6, palette='summer', hue=hue)
+
+train_data['Embarked']. value_counts()
+
+x = train_data['Embarked']
+count_plot(x, train_data, "Port of Embarkation", "Percentage of embarked", "count", 6,6, palette='winter')
+
+x = train_data['Embarked']
+hue = train_data['Survived']
+count_plot(x, train_data, "Survived embarked Counts", "Embarked", 'Count', 6,6, palette='dark', hue=hue)
+
+train_data['SibSp']. value_counts()
+
+x = train_data['SibSp']
+order = [0,1,2,3]
+count_plot(x, train_data, "# Sblings / Spouse for the passenger", "Number of Sib/Sp", 'Count', 12,3, order=order, )
+
+train_data['Parch']. value_counts()
+
+x = train_data['Parch']
+count_plot(x, train_data, "# Parent / Children of the passenger", "Number of Par/Ch", 'Count', 12,9,)
+
+train_data.nunique()
+
+sns.histplot(data = train_data, x='Age', element="step")
+plt.title("Age Distrubtion in the Titanic")
+plt.show()
+
+sns.boxplot(data = train_data, x='Age')
+plt.title("Age Distrubtion in the Titanic")
+plt.show()
+
+sns.histplot(data = train_data, x='Age', hue='Survived', palette='summer', multiple="stack", element="step")
+plt.title('Age Survived Distrbution')
+plt.show()
+
+h = sns.FacetGrid(train_data, row = 'Sex', col = 'Pclass', hue = 'Survived')
+h.map(plt.hist, 'Age', alpha = .75)
+h.add_legend()
+plt.show()
+
+Basic Data Analysis
+
+Pclass - Survived, 
+Sex - Survived, 
+SibSp - Survived, 
+Parch - Survived.
+
+# Plcass vs Survived
+train_data[["Pclass","Survived"]].groupby(["Pclass"], as_index = False).mean().sort_values(by="Survived",ascending = False)
+
+ #Plcass vs Survived
+train_data[["Pclass","Survived"]].groupby(["Pclass"], as_index = False).mean().sort_values(by="Survived",ascending = False)
+
+# Sex vs Survived
+train_data[["Sex","Survived"]].groupby(["Sex"], as_index = False).mean().sort_values(by="Survived",ascending = False)
+
+# Sibsp vs Survived
+train_data[["SibSp","Survived"]].groupby(["SibSp"], as_index = False).mean().sort_values(by="Survived",ascending = False)
+
+# Parch vs Survived
+train_data[["Parch","Survived"]].groupby(["Parch"], as_index = False).mean().sort_values(by="Survived",ascending = False)
+
+## Correlation Coefficient
+
+plt.figure(figsize=[13, 8])
+ax = sns.heatmap(train_data.corr(), annot = True, cmap="RdYlGn", lw = 1)
+plt.show()
+
+g = sns.catplot(x = "SibSp", y = "Survived", data = train_data, kind = "bar")
+g.set_ylabels("Survived Probability")
+plt.show()
+
+sns.catplot(x = "Sex", y = "Age", data = train_data, kind = "box")
+plt.show()
+
+train_data["Name"].head(10)
+
+train_data['Name'].str.split(', ')
+
+train_data['Name'].str.split(', ', expand=True)[1].str.split('.')
+
+train_data['Title'] = train_data['Name'].str.split(', ', expand=True)[1].str.split('.', expand=True)[0]
+
+train_data["Title"].head(10)
+
+train_data['Title'].value_counts()
+
+x = train_data['Title']
+order = train_data['Title'].value_counts().index
+count_plot(x, train_data, "Title Frequncies", "Title", "Frequncey", 12,8, rotation=True, order=order)
+
+# convert to categorical
+train_data["Title"] = train_data["Title"].replace(["Lady","the Countess","Capt","Col","Don","Dr","Major","Sir"],"other")
+train_data["Title"] = [0 if i == "Master" else 1 if i == "Miss" or i == "Ms" or i == "Mlle" or i == "Mrs" else 2 if i == "Mr" else 3 for i in train_data["Title"]]
+train_data["Title"].head(10)
+
+sns.countplot(x="Title", data = train_data)
+plt.xticks(rotation = 60)
+plt.show()
+
+g = sns.catplot(x = "Title", y = "Survived", data = train_data, kind = "bar")
+g.set_xticklabels(["Master","Mrs","Mr","Other"])
+g.set_ylabels("Survival Probability")
+plt.show()
+
+train_data.drop(labels = ["Name"], axis = 1, inplace = True)
+
+train_data.head()
+
+train_data = pd.get_dummies(train_data,columns=["Title"])
+train_data.head()
+
+train_data['FamilySize'] = train_data['SibSp'] + train_data['Parch'] + 1
+train_data.head()
+
+g = sns.catplot(x = "FamilySize", y = "Survived", data = train_data, kind = "bar")
+g.set_ylabels("Survival")
+plt.show()
+
+x = train_data['FamilySize']
+count_plot(x, train_data, "Family Size Frequncies", "Family Size", "Frequency", 12,8, palette='dark')
+
+x = train_data['FamilySize']
+hue = train_data['Survived']
+count_plot(x, train_data, "Family Size Frequncies", "Family Size", "Frequency", 12,8, palette='dark', hue=hue)
+
+train_data.head(10)
+
+sns.countplot(x = "FamilySize", data = train_data)
+plt.show()
+
+## Modelling
+
+from sklearn.model_selection import train_test_split, StratifiedKFold, GridSearchCV
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier, VotingClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.tree import DecisionTreeClassifier
+
+## Train - Test Split
+
+train_data = pd.get_dummies(train_data, columns=["Embarked"])
+train_data.head()
+
+train_data["Ticket"].head(20)
+
+train_data.columns
+
+## Pclass
+
+train_data["Pclass"] = train_data["Pclass"].astype("category")
+train_data = pd.get_dummies(train_data, columns= ["Pclass"])
+train_data.head()
+
+## Sex
+
+train_data["Sex"] = train_data["Sex"].astype("category")
+train_data = pd.get_dummies(train_data, columns=["Sex"])
+train_data.head()
+
+## Drop Passenger ID and Cabin
+
+train_data.drop(labels = ["PassengerId", "Cabin"], axis = 1, inplace = True)
+
+train_data.columns
+
+from sklearn.model_selection import train_test_split, StratifiedKFold, GridSearchCV
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier, VotingClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.tree import DecisionTreeClassifier
+
+## DATA CLEANING
+
+test_data= pd.read_csv('test.csv')
+test_data.head()
+
+
+
+
+
+
+
+
+
+
+
